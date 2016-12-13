@@ -1,4 +1,5 @@
 var redux = require('redux');
+var axios = require('axios');
 
 console.log('Start Redux ...');
 
@@ -87,7 +88,11 @@ var moviesReducer = (state=[], action)=>{
 		case 'ADD_MOVIE':
 			return [
 				...state,
-				action.movie
+				{
+					id: nextMovieId++,
+					title:action.title,
+					genre:action.genre
+				}
 			]
 		case 'REMOVE_MOVIE':
 		return state.filter((movie)=> movie.id !== action.id)
@@ -95,10 +100,96 @@ var moviesReducer = (state=[], action)=>{
 			return state;
 	}
 };
+
+var changeName = (name)=>{
+	return {
+		type:'CHANGE_NAME',
+		name:name
+	}
+};
+
+var addHobby = (hobby)=>{
+	return {
+		type:'ADD_HOBBY',
+		hobby:hobby
+	}
+};
+
+var removeHobby = (id)=>{
+	return {
+			type:'REMOVE_HOBBY',
+			id:id
+	}
+};
+
+var addMovie = (title, genre)=>{
+	return {
+		type:'ADD_MOVIE',
+		title:title,
+		genre:genre
+	}
+};
+
+var removeMovie = (id)=>{
+	return {
+		type:'REMOVE_MOVIE',
+		id:id
+	}
+};
+
+var mapDefault = {
+	isFetching:false,
+	url:undefined
+}
+var mapReducer = (state = mapDefault, action)=>{
+	switch (action.type) {
+		case 'START_FETCHING_LOCATION':
+				return {
+					isFetching:true,
+					url:undefined
+				};
+
+		case 'COMPLETE_FETCHING_LOCATION':
+				return {
+					isFetching:false,
+					url:action.url
+				};
+
+		default:
+			return state;
+	}
+};
+
+var startFetchingLocation = ()=>{
+	return {
+		type:'START_FETCHING_LOCATION'
+	}
+};
+
+var completeFetchingLocation = (url)=>{
+	return {
+		type:'COMPLETE_FETCHING_LOCATION',
+		url:url
+	}
+};
+
+var fetchLocation = ()=>{
+	store.dispatch(startFetchingLocation());
+
+	axios.get('http://ipinfo.io/').then(function(res){
+		var loc = res.data.loc;
+		var baseURl = 'https://www.google.ca/maps/?q=';
+			store.dispatch(completeFetchingLocation(baseURl + loc));
+	});
+
+};
+
+
 var reducer = redux.combineReducers({
 	name:nameReducer,
 	hobbies:hobbiesReducer,
-	movies: moviesReducer
+	movies: moviesReducer,
+	map:mapReducer
 });
 var store = redux.createStore(reducer,window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
 
@@ -107,48 +198,24 @@ store.subscribe(()=>{
 
 	console.log('new State',state);
 
-});
-var action = {
-	type:'CHANGE_NAME',
-	name:'Ping'
-};
-
-store.dispatch(action);
-
-store.dispatch({
-	type:'ADD_HOBBY',
-	hobby:'Running'
-})
-
-store.dispatch({
-	type:'ADD_HOBBY',
-	hobby:'Reading'
-})
-
-store.dispatch({
-	type:'ADD_MOVIE',
-	movie:{
-		id:nextMovieId++,
-		title:'First movie',
-		genre:'Action'
+	if(state.map.isFetching){
+		document.getElementById('app').innerHTML = 'Loading...';
+	}else if(state.map.url){
+		document.getElementById('app').innerHTML = '<a href="'+state.map.url +'" target="_blank">View your location</a>';
 	}
-})
 
-store.dispatch({
-	type:'ADD_MOVIE',
-	movie:{
-		id:nextMovieId++,
-		title:'Second movie',
-		genre:'Comedy'
-	}
-})
-
-store.dispatch({
-	type:'REMOVE_HOBBY',
-	id:2
 });
 
-store.dispatch({
-	type:'REMOVE_MOVIE',
-	id:1
-});
+fetchLocation();
+store.dispatch(changeName('ZhangPing'));
+
+store.dispatch(addHobby('Watching TV'));
+store.dispatch(addHobby('Reading Book'));
+store.dispatch(addHobby('Playing Videogame'));
+
+store.dispatch(addMovie('Running Bride'));
+store.dispatch(addMovie('The Matrix'));
+store.dispatch(addMovie('Jason Bourne'));
+
+store.dispatch(removeHobby(2));
+store.dispatch(removeMovie(1));
